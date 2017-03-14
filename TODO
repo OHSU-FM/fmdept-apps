@@ -1,0 +1,96 @@
+##
+# Bug:
+An ActionView::Template::Error occurred in leave_requests#show: 
+undefined method `name' for nil:NilClass
+
+            app/models/approval_state.rb:136:in `verdict'
+          
+Request 
+•	URL: https://fmresearch.ohsu.edu/private/fmdept-apps/leave_requests/1670 
+•	HTTP Method: GET 
+•	IP Address: 192.168.110.252 
+•	Parameters: {"action"=>"show", "controller"=>"leave_requests", "id"=>"1670"} 
+•	Timestamp: 2015-05-14 18:33:59 UTC 
+•	Server: fmdept2 
+•	Rails root: /srv/fmdept-apps 
+•	Process: 9870 
+
+
+## 
+# Feature Request:
+- Ajax calls should redirect window on error
+-- Specifically when a user has been logged out and ajax calls wont work any more
+
+##
+# Feature Request:
+#
+- Add search functionality to the form approvals and review page
+
+##
+# Feature Request:
+#
+-- Allow leave request to be canceled only if it has been submitted. Allow to be deleted otherwise. 
+-- Allow users to be deleted / disabled
+-- Request created...
+    -- Submitted?
+        -- Y - Rejected? 
+            -- N - Allow cancel - Notify everyone 
+            -- Y - Cancel disabled
+        -- N - Allow delete
+
+##
+# Feature Request:
+#
+From: Becky Knepper 
+Sent: Wednesday, April 22, 2015 12:15 PM
+To: Pema Choephel; William Hatt
+Subject: FW: leave request for Patrice Eiff has been accepted
+
+Pema and Bill – I tried to write note back to the employee but it said I 
+don’t have rights to submit.  Can I get rights so that I can communicate 
+within the system as to why I am rejecting or asking for more info?
+
+Muchas Gracias!  BK
+
+
+##
+# Feature Request:
+#
+- Review submit as for request
+-- Limit number of options to submit as 
+--- permission and extra testing
+
+##
+# Feature Request:
+#
+- Refactor the UDE into approval process table
+-- stop duplicating information in UDE table
+
+##
+# Feature Request:
+#
+- Create a calendar application for viewing time off of multiple people at once
+
+##
+# Feature Request:
+#
+- Fix email HTML styling so that emails look nicer. CSS and color
+
+##
+# Feature Request:
+#
+- Rework site into bootstrap
+
+##
+# Feature Request:
+#
+- Move all configuration options into a yml file and out of source code
+    X Create an example config file for each yml file
+    - reduce the number of yml files
+
+##
+# Feature Request:
+#
+- Update plugins, check Gemfile.status for details
+- Update to rails 4 or rails 5
+

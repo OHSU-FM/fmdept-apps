@@ -1,0 +1,125 @@
+
+# Default finalizer to add if user doesn't have one
+default_finalizer:
+    email: 'charronl@ohsu.edu'
+    role_id: 3
+    displayname: 'Laura Charron'
+
+default_travel_agent:
+    email: 'woodd@ohsu.edu'
+    role_id: 4
+    displayname: 'Doreen Wood'
+
+default_reviewer:
+    email: 'pierkam@ohsu.edu'
+    role_id: 2
+    displayname: 'Kam Pierce'
+
+users:
+    pierkam@ohsu.edu:
+        - email: 'charronl@ohsu.edu'
+          role_id: 3
+
+    crawfoco@ohsu.edu:
+        - email: 'pierkam@ohsu.edu'
+          role_id: 2
+        - email: 'devoej@ohsu.edu'
+          role_id: 1
+        - email: 'charronl@ohsu.edu'
+          role_id: 3'
+
+    angierh@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'devoej@ohsu.edu'
+        role_id: 1
+    
+    bailstef@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'devoej@ohsu.edu'
+        role_id: 1
+    
+    kellersa@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'cohendj@ohsu.edu'
+        role_id: 1
+    
+    likumahu@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'devoej@ohsu.edu'
+        role_id: 1
+    
+    rdesinsk@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'melnicka@ohsu.edu'
+        role_id: 1
+      - email: 'toffler@ohsu.edu'
+        role_id: 1
+    
+    sachdeva@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'garvinr@ohsu.edu'
+        role_id: 1
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'safields@ohsu.edu'
+        role_id: 1
+    
+    waller@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'eiff@ohsu.edu'
+        role_id: 1
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'carneyp@ohsu.edu'
+        role_id: 1
+      - email: 'cohendj@ohsu.edu'
+        role_id: 1
+
+    winklej@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'muenchj@ohsu.edu'
+        role_id: 1
+        
+    hattb@ohsu.edu:
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'eiff@ohsu.edu'
+        role_id: 1
+      - email: 'carneyp@ohsu.edu'
+        role_id: 1
+      - email: 'melnicka@ohsu.edu'
+        role_id: 1
+    
+    hohnstei@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3
+    
+    woodd@ohsu.edu:
+      - email: 'pierkam@ohsu.edu'
+        role_id: 2
+      - email: 'charronl@ohsu.edu'
+        role_id: 3

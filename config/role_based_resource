@@ -1,0 +1,37 @@
+roles:
+    travel_agent: 4
+    finalizer: 3
+    reviewer: 2
+    notifier: 1
+
+notify_states:
+    travel_agent: [0]
+    finalizer: [13]
+    reviewer: [0]
+    notifier: [0]
+
+states:
+    'unsubmitted':                0   # mail_sent = false           ------ User has control
+    'submitted':                  1   # mail_sent = true            -
+    'in review':                  10  # viewed by reviewer          ------ Reviewer controlled
+    'not enough information':     11  # marked by reviewer          -
+    'rejected by reviewer':       12  # by reviewer                 -
+    'awaiting final review':      13  # approved by reviewer        -
+    'in final review':            20  # viewed by final reviewer    ------ Finalizer controlled
+    'not enough information':     21  # marked by final reviewer    -
+    'rejected by final reviewer': 22  # by final reviewer           -
+    'accepted by final reviewer': 23  #                             -
+    'error':                      99  #
+    'reviewer rejected':          120 # ??? Is this even used?
+
+# TODO: this file should be moved into a model
+#  99 
+#  
+#  0 -> 1 -> 10 -> 13 -> 20 -> 23
+#            /|         /|\
+#           / 11       / | \
+#          12         22 |  120
+#                        21
+#
+#
+

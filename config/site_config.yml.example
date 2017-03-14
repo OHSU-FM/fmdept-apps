@@ -1,0 +1,23 @@
+admin:
+    email: hattb@ohsu.edu
+    name: William Hatt
+mailer:
+    domain: ohsu.edu
+    return_address: noreply@fmresearch.ohsu.edu
+
+# Default finalizer to add if user doesn't have one
+default_finalizer:
+    email: 'charronl@ohsu.edu'
+    role_id: 3
+    displayname: 'Laura Charron'
+
+default_travel_agent:
+    email: 'woodd@ohsu.edu'
+    role_id: 4
+    displayname: 'Doreen Wood'
+
+default_reviewer:
+    email: 'pierkam@ohsu.edu'
+    role_id: 2
+    displayname: 'Kam Pierce'
+

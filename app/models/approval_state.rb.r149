@@ -1,0 +1,361 @@
+class ApprovalState < ActiveRecord::Base
+  # Constants
+  INCOMPLETE_STATES = [0]                     # Form has not been completed
+  COMPLETED_STATES = [50, 51, 61]             # Possible States of completed forms
+  NO_STATES = [-1]                            # Roundabout way of ignoring nothing
+  REVIEWER_IGNORE_STATES = [0, 50, 51, 61]    # Form states that a reviewer typically would
+  # Ignore (unsubmitted, rejected, accepted)
+  REVIEWER_STATES = [40, 50, 60]              # Status enum options for a reviewer
+
+  STATES = {
+    0=>'unsubmitted',              # mail_sent = false
+    10=>'submitted',               # mail_sent = true
+    20=>'unopened',                 # unopened for review
+    30=>'in review',               # viewed by reviewer
+    40=>'missing information',     # marked by reviewer
+    50=>'rejected',                # by reviewer
+    51=>'expired',
+    60=>'accepted',                # approved by reviewer
+    61=>'approval complete',       # approved by final reviewer
+    999=>'error'
+  }
+  STATE_STRINGS = STATES.invert
+
+  # imports
+  has_paper_trail
+
+  # ORM relations
+  belongs_to :approvable, :polymorphic=> true
+  belongs_to :user
+  has_many :user_default_emails, :through=>:user
+
+  # Order is important!
+  has_many :reviewers,
+    -> { where("user_default_emails.role_id IN (#{RoleBasedResource::REVIEWER_ROLES.join(',')})").
+         order('user_default_emails.approval_order')},
+    :through=>:user,
+    :source=>:user_default_emails
+
+         scope :active, -> { where(['status NOT IN (?)', REVIEWER_IGNORE_STATES]) }
+
+         # Access and validations
+         attr_accessible :status, :mail_sent, :form_locked, :approval_order, :status_str
+         validates_presence_of :approvable_type
+         validates_presence_of :approvable_id
+         validates_presence_of :approval_order
+         validates_presence_of :status
+         validates_presence_of :user
+         validates :status, :inclusion=>STATES.keys
+         validates_uniqueness_of :approvable_id, :scope=>[:approvable_type]
+         before_validation :copy_user_id_from_approvable
+
+         rails_admin do
+           include_all_fields
+
+           field :user do
+             searchable :name, :email, :login, :sn
+           end
+
+           field :state_author
+
+           field :approval_order do
+             searchable false
+           end
+
+           field :status do
+             searchable false
+             filterable true
+           end
+           field :approvable
+           field :user_default_emails
+           field :created_at
+           field :updated_at
+
+         end
+
+         def resubmitted_approval_order
+           approval_order + (resubmitted * 6)
+         end
+
+         def contacts
+           user.user_default_emails.where(approval_order: approval_order)
+         end
+
+         def previous_contacts
+           user.user_default_emails.where ["user_default_emails.approval_order < ?", approval_order]
+         end
+
+         ##
+         # Descriptor for author of this change
+         def state_author
+           if self.originator
+             return User.find_by_id(self.originator).email || 'Unknown'
+           end
+           return 'None'
+         end
+
+         def copy_user_id_from_approvable
+           self.user_id = self.approvable.user_id if self.user_id.nil?
+         end
+
+         def reset_to_unsubmitted
+           self.resubmitted += 1
+           self.status = 0
+           self.form_locked = false
+           self.mail_sent = false
+           self.save!
+         end
+
+         def approvals_status_history
+           results = []
+
+           self.reviewers.each do |ude|
+             ver = self
+             match = nil
+
+             until ver.nil? do
+               user = User.find( ver.originator.to_i ) rescue nil
+               if !user.nil? && (ude.approval_order + (resubmitted * 6 - 1) == (ver.approval_order + (resubmitted * 6 - 1)))
+                 match = {
+                   :user_name=>user.name,
+                   :ude=>ude,
+                   :ver=>ver
+                 }
+
+                 break
+               end
+               ver = ver.previous_version
+             end
+             if not match
+               match = {
+                 :user_name=>nil,
+                 :ude=>ude
+               }
+             end
+
+             results.push match
+
+           end
+           return results
+         end
+
+         # The current verdict on the approval
+         def verdict
+           if self.is_complete?
+             return self.status_str.titleize
+           elsif self.ready_to_submit?
+             return 'Ready to submit'
+           elsif self.status_str == 'missing information'
+             return "Waiting on response from #{self.user.name || self.user.email} "
+           elsif ['unopened', 'in review' ].include? self.status_str
+             return "Waiting on response from #{self.current_reviewer.name || self.current_reviewer.email}"
+           elsif next_reviewer.nil?
+             return "Error"
+           else
+             return "Waiting on response from #{next_reviewer.name || next_reviewer.email}"
+           end
+         end
+
+         # Getter for status
+         def status_str
+           self.class::STATES[self.status]
+         end
+
+         # Setter for status
+         def status_str= _value
+           raise ArgumentError.new("Invalid status: '#{_value}'") unless status_enum.keys.include? _value
+
+           self.status = status_enum[_value]
+         end
+
+         # Rails admin enum for request status
+         def status_enum
+           @status_enum ||= ApprovalState::STATES.invert
+           return @status_enum
+         end
+
+         # helper method or rails_admin
+         def reviewer_status_enum
+           state_ids = (self.class::REVIEWER_STATES + [self.status]).uniq
+           self.class::STATES.slice(*state_ids).invert
+         end
+
+
+         # Is the current status marked as complete?
+         def is_complete?
+           return ApprovalState::COMPLETED_STATES.include? self.status.to_i
+         end
+
+         # has this request been submitted for approval?
+         def submitted?
+           self.status.to_i > status_enum['unsubmitted']
+         end
+
+         # submit this request for approval
+         def mark_as_submitted!
+           # bail and error out if we've already submitted
+           if self.submitted?
+             self.errors.add :base, "This form has already been submitted"
+             return
+           end
+           # Initial changes to model
+           opts = {
+             :form_locked=>true,
+             :mail_sent=>true,
+             :status=>status_enum['submitted']
+           }
+           # determine next approval order value
+           next_order = (approval_order > 0) ? approval_order : 1
+           # Final state of model (after changes)
+           next_opts = {
+             :approval_order=>next_order,
+             :status=>status_enum['unopened']
+           }
+           # conduct status transaction
+           status_transaction opts, next_opts
+         end
+
+         # Find the next reviewer depending on specific conditions
+         def next_reviewer opts={}
+           opts[:after] ||= self.approval_order.to_i + (resubmitted * 6)
+
+           # Return first reviewer with larger approval order
+           return self.reviewers.find{ |ude|
+             (ude.approval_order + resubmitted * 6) > (opts[:after] + resubmitted * 6)
+           }
+         end
+
+         def current_reviewer
+           self.reviewers.find{|ude|
+             (ude.approval_order + (resubmitted * 6)) == approval_order + resubmitted * 6
+           }
+         end
+
+         def reviewer_mark_status_as! new_status, email
+           # only accept reviewer states as input
+           unless self.class::REVIEWER_STATES.include?(new_status)
+             self.errors.add :status, "Unknown status"
+             return false
+           end
+
+           # find current reviewer with this email
+           reviewer = self.reviewers.find{|ude|ude.approval_order >= approval_order && ude.email == email}
+           reviewer = self.reviewers.find{|ude|ude.email == email} if reviewer.nil?
+           if reviewer.nil?
+             self.errors.add :base, "Unknown reviewer email: #{email}"
+             return false
+           end
+           # set changes for first part of transaction
+           opts = {:status=>new_status, :approval_order => reviewer.approval_order}
+           status_accepted = new_status == status_enum['accepted']
+           # Generate options for second part of transaction
+           next_opts = {}
+           reviewer = next_reviewer :after=>opts[:approval_order]
+           # was accepted and still a reviewer?
+           if status_accepted && reviewer.nil? == false
+             # Not yet complete
+             # Mark as unopened and set approval_order = to next_reviewer
+             next_opts[:status] = status_enum['unopened']
+             next_opts[:approval_order] = reviewer.approval_order
+           elsif status_accepted
+             # Approval complete
+             next_opts[:status] = status_enum['approval complete']
+           else
+             # Mark as suggested (submitted, rejected, missing info) etc...
+             next_opts[:status] = new_status
+           end
+
+           # conduct status transaction
+           status_transaction opts, next_opts
+         end
+
+         # rails admin
+         def name
+           self.status_str
+         end
+
+         # Are we ready to submit the application?
+         def ready_to_submit?
+           return self.new_record? == false && \
+             self.approvable.new_record? == false && \
+             self.mail_sent == false
+         end
+
+         protected
+
+         # determine what changes should occur to the approval state
+         # given its current and soon to be status
+         def get_next_opts opts
+
+           # Check if further review is needed
+           next_order = self.approval_order.to_i + 1
+
+           # Get array of all reviewers for the next approval_order
+           ude_arr = self.user_default_emails.select do |ude|
+             (ude.approval_order == next_order) && ude.reviewer?
+           end
+
+           # If there is more than one then we are not done
+           if ude_arr.size > 0
+             opts[:status] = status_enum['unopened']
+             opts[:approval_order] = next_order
+           end
+
+           return opts
+         end
+
+         def status_transaction opts, next_opts
+           ActiveRecord::Base.transaction do
+
+             # Save changes to approval
+             unless self.update_attributes(opts)
+               self.errors.add :base, 'Submission of approval state failed'
+               return false
+             end
+
+             # Get status of submitted action
+             old_status = self.status
+
+             # Change status to next state
+             unless self.update_attributes(next_opts)
+               self.errors.add :base, 'Update of approval state failed'
+               return false
+             end
+
+             unless send_mail!(old_status)
+               self.errors.add :base, 'An error occurred while sending email notifications'
+               return false
+             end
+
+           end
+           return true
+         end
+
+         # Send the email for this request
+         def send_mail!(approval_status)
+           #
+           approval_status_str = status_enum.invert[approval_status]
+
+           # Get request and user
+           request =  self.approvable
+           user = request.user
+
+           # cc all users in our current approval order
+           cc_users = self.contacts.map{|ude|ude.email}
+
+           # Add in previous contacts if we were rejected
+           if approval_status == status_enum['rejected']
+             cc_users += previous_contacts.map{|ude|ude.email}
+           end
+           # set subject header
+           mail_opts = {
+             :to=>user.email,
+             :subject => "#{request.class.model_name.human} for #{user.name} has been #{approval_status_str}",
+             :cc=>cc_users.uniq
+           }
+
+           UserMailer.send("#{approvable.class.name.underscore}_email", self, mail_opts).deliver
+           return true
+         end
+
+end
