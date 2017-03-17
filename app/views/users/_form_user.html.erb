@@ -2,7 +2,7 @@
 <div class="col-xs-12 col-md-6">
 
     <div id="ldap_delegates_query" class="ui-widget-content ui-corner-all partial_form">
-               
+
         <table class="table">
         <tbody>
           <tr>
@@ -12,6 +12,18 @@
           <tr>
             <td><b>Email:</b></td>
             <td><%= @user.email %></td>
+          </tr>
+          <tr>
+            <td><%= f.label :empid %></td>
+            <td><%= f.text_field :empid %></td>
+          </tr>
+          <tr>
+            <td><%= f.label :emp_class %></td>
+            <td><%= f.text_field :emp_class %></td>
+          </tr>
+          <tr>
+            <td><%= f.label :emp_home %></td>
+            <td><%= f.text_field :emp_home %></td>
           </tr>
           <tr>
                 <td>
@@ -43,9 +55,9 @@
           </tr>
         </tbody>
         </table>
-                
+
     </div>
-    
+
     <div>
         <hr/>
         <%= f.submit 'Save',:class=>'btn btn-primary'%>
@@ -61,7 +73,7 @@
     </p>
     <h4>Contacts</h4>
     <p>
-        People who will be notified when you fill out a leave and travel request. 
+        People who will be notified when you fill out a leave and travel request.
         This may also include people that are required to accept / reject your request once it is submitted.
     </p>
     <h4>Delegates</h4>
@@ -70,4 +82,3 @@
     </p>
 </div>
 <% end %>
-
