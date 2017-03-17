@@ -1,9 +1,9 @@
 class User < ActiveRecord::Base
   has_paper_trail
-  acts_as_paranoid 
+  acts_as_paranoid
   scope :deleted, -> { unscoped.where('deleted_at IS NOT NULL') }
   # Setup accessible (or non protected) attributes for your model
-  attr_accessible :remember_me, 
+  attr_accessible :remember_me,
     :timezone,
     :user_default_emails,
     :user_default_emails_attributes,
@@ -15,20 +15,23 @@ class User < ActiveRecord::Base
     :name,
     :user_delegations,
     :user_delegations_attributes,
-    :view_admin
+    :view_admin,
+    :empid,
+    :emp_class,
+    :emp_home
 
-  has_many :user_default_emails,  
+  has_many :user_default_emails,
       -> { order([:approval_order,:role_id]) }, :dependent=>:delete_all
 
   has_many :travel_requests
   has_many :leave_requests
-  
+
   # HABTM
   has_many :user_delegations, :dependent=>:delete_all
-  
+
   # People that we have delegated authority to
   has_many :delegates, :through=>:user_delegations, :dependent=>:delete_all, :class_name=>'User'
-  
+
   # People that have delegated authority to us
   has_and_belongs_to_many(:delegators,
     :join_table => "user_delegations",
@@ -40,22 +43,22 @@ class User < ActiveRecord::Base
     :class_name=>'UserDefaultEmail'
 
   has_many :others_notified,
-    -> { 
+    -> {
         where(['user_default_emails.role_id NOT IN (?)', UserDefaultEmail::REVIEWER_ROLES]).
         order('user_default_emails.approval_order ASC')
     },
-    :class_name=>'UserDefaultEmail' 
+    :class_name=>'UserDefaultEmail'
 
-  has_many :request_applicants_ude, 
+  has_many :request_applicants_ude,
     class_name: 'UserDefaultEmail', primary_key: :email, foreign_key: :email
 
   has_many :request_applicants, through: :request_applicants_ude, source: :user
-  has_many :editable_request_applicants, 
+  has_many :editable_request_applicants,
     -> {
         where(['user_default_emails.role_id IN (?)', UserDefaultEmail::REVIEWER_ROLES]).
         order('user_default_emails.approval_order ASC')
     }, through: :request_applicants_ude, source: :user
-  
+
   accepts_nested_attributes_for :user_default_emails, :allow_destroy=>true
   accepts_nested_attributes_for :user_delegations, :allow_destroy=>true
 
@@ -73,6 +76,9 @@ class User < ActiveRecord::Base
   rails_admin do
     group 'User Information' do
         field :name
+        field :empid
+        field :emp_class
+        field :emp_home
         field :email
         field :login
         field :sn
@@ -101,7 +107,7 @@ class User < ActiveRecord::Base
         field :user_delegations
     end
 
-    group 'Forms' do 
+    group 'Forms' do
         active false
         field :leave_requests
         field :travel_requests
@@ -129,9 +135,9 @@ class User < ActiveRecord::Base
   def is_reviewer?
     return UserDefaultEmail.where(
         [
-            'email = ? AND role_id IN (?)', 
-            self.email, UserDefaultEmail::REVIEWER_ROLES 
-        ]).count > 0 
+            'email = ? AND role_id IN (?)',
+            self.email, UserDefaultEmail::REVIEWER_ROLES
+        ]).count > 0
   end
 
   def prevent_email_and_name_changes
@@ -142,7 +148,7 @@ class User < ActiveRecord::Base
     if self.email_was != self.email
         errors.add(:base,'You are not allowed to change your email address')
     end
-    
+
   end
 
   def has_reviewer?
@@ -185,16 +191,13 @@ class User < ActiveRecord::Base
     return 0 if self.id.nil?
     return RequestSearch.approvals_for(self, show: 'pending', per_page: 1000).count
   end
-  
+
   # Get the display name
   # Get the email address
   def ldap_verify_and_update
     return unless self.is_ldap?
-    
-    scanner = LdapQuery::Scanner.search self.login, :only=>:ldap 
-    if scanner.errors.size > 0
-        scanner = LdapQuery::Scanner.search self.email, :only=>:ldap 
-    end
+
+    scanner = LdapQuery::Scanner.search self.login, :only=>:ldap
 
     if scanner.errors.size > 0
         errors.add(:login, 'Login is invalid or cannot be found in OHSU\'s servers')
@@ -225,7 +228,7 @@ class User < ActiveRecord::Base
   def viewable_users
     @viewable_users ||= (controllable_users + request_applicants + controllable_users.map{|uu|uu.request_applicants}).flatten.uniq
   end
-  
+
   ##
   # Collection of users that we should be allowed to view all of their stuff
   def approvable_users
@@ -234,4 +237,3 @@ class User < ActiveRecord::Base
 
 
 end
-
